@@ -1,0 +1,185 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function userExists() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return userExists()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : "reader";
+    }
+
+    function isAdmin() {
+      return signedIn() && userRole() == "admin";
+    }
+
+    function isEditor() {
+      return signedIn() && userRole() == "editor";
+    }
+
+    function isEditorOrAdmin() {
+      return isAdmin() || isEditor();
+    }
+
+    // ARTICLES - public can read only published articles
+    match /articles/{articleId} {
+      allow read: if resource.data.status == "published" || isEditorOrAdmin();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // CATEGORIES - public read
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // TAGS - public read
+    match /tags/{tagId} {
+      allow read: if true;
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // TIMELINES - public can read only published timelines
+    match /timelines/{timelineId} {
+      allow read: if resource.data.status == "published" || isEditorOrAdmin();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // USERS
+    match /users/{userId} {
+      // User can read own profile, admin can read all
+      allow read: if isOwner(userId) || isAdmin();
+
+      // New user can create own profile only as reader
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == "reader";
+
+      // User can update own profile but cannot change role
+      allow update: if isOwner(userId)
+        && request.resource.data.role == resource.data.role;
+
+      // Admin can manage users
+      allow update, delete: if isAdmin();
+    }
+
+    // COMMENTS
+    match /comments/{commentId} {
+      allow read: if resource.data.status == "approved" || isEditorOrAdmin();
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isEditorOrAdmin();
+
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow delete: if isEditorOrAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // REACTIONS
+    match /reactions/{reactionId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if signedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow update, delete: if isEditorOrAdmin();
+    }
+
+    // POLLS
+    match /polls/{pollId} {
+      allow read: if true;
+      allow create: if isEditorOrAdmin();
+      allow update: if isEditorOrAdmin();
+
+      // Allows logged-in users to vote/update poll counts
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).changedKeys()
+          .hasOnly(["options", "totalVotes", "updatedAt"]);
+
+      allow delete: if isAdmin();
+
+      match /votes/{voteId} {
+        allow read: if isOwner(voteId) || isEditorOrAdmin();
+
+        allow create: if isOwner(voteId)
+          && request.resource.data.userId == request.auth.uid;
+
+        allow update, delete: if false;
+      }
+    }
+
+    // NOTIFICATIONS
+    match /notifications/{notificationId} {
+      allow read: if signedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if signedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // BOOKMARKS
+    match /bookmarks/{bookmarkId} {
+      allow read: if signedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow delete: if signedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow update: if false;
+    }
+
+    // SETTINGS
+    match /settings/{settingId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // APP 2 MONITOR DATA
+    match /rawNewsItems/{docId} {
+      allow read, write, delete: if isEditorOrAdmin();
+    }
+
+    match /newsClusters/{docId} {
+      allow read, write, delete: if isEditorOrAdmin();
+    }
+
+    match /generatedContent/{docId} {
+      allow read, write, delete: if isEditorOrAdmin();
+    }
+
+    // BLOCK EVERYTHING ELSE
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
