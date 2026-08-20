@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
+  approveReviewContent,
+  approveReviewPlatform,
+  approveRejectedReview,
   approveReviewSource,
   approveReviewVerification,
   generateContent,
@@ -50,10 +53,22 @@ const USAGE_OPTIONS = [
   { value: "written_permission", label: "Written permission", help: "The rights holder supplied written permission for this use." },
 ];
 
+function hardContentErrors(report) {
+  return (report?.errors || []).filter(
+    (error) => !String(error).toLowerCase().includes("human copyright review confirmation"),
+  );
+}
+
 function formatDate(value) {
   if (!value) return "Date unavailable";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+}
+
+function isRejectedItem(item) {
+  return ["rejected", "automatically_rejected"].includes(
+    String(item?.reviewResolution || "").toLowerCase(),
+  );
 }
 
 function RejectModal({ item, busy, onCancel, onConfirm }) {
@@ -179,6 +194,90 @@ export default function ReviewQueuePage() {
     }
   }
 
+  async function approveContent(item) {
+    const reviewReason = (notes[item.id] || "").trim();
+    if (!reviewer.trim()) {
+      setError("Enter the reviewer name before approving this content review.");
+      return;
+    }
+    if (!reviewReason) {
+      setError("Describe what you checked before approving the content.");
+      return;
+    }
+
+    setBusyId(item.id);
+    setError("");
+    setMessage("");
+    try {
+      await approveReviewContent(item.id, {
+        reviewer: reviewer.trim(),
+        notes: reviewReason,
+      });
+      setMessage("Content review approved. Opening the generated article for publishing...");
+      router.push(`/clusters/${item.id}#generated-output`);
+    } catch (err) {
+      setError(err.message || "Could not approve the content review");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function approvePlatform(item) {
+    const reviewReason = (notes[item.id] || "").trim();
+    if (!reviewer.trim()) {
+      setError("Enter the reviewer name before confirming the platform check.");
+      return;
+    }
+    if (!reviewReason) {
+      setError("Describe what you checked before retrying delivery.");
+      return;
+    }
+
+    setBusyId(item.id);
+    setError("");
+    setMessage("");
+    try {
+      await approveReviewPlatform(item.id, {
+        reviewer: reviewer.trim(),
+        notes: reviewReason,
+      });
+      setMessage("Platform issue recorded as checked. Opening the article to retry publishing...");
+      router.push(`/clusters/${item.id}#generated-output`);
+    } catch (err) {
+      setError(err.message || "Could not confirm the platform check");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function approveRejected(item) {
+    const reviewReason = (notes[item.id] || "").trim();
+    if (!reviewer.trim()) {
+      setError("Enter the reviewer name before approving this rejected item.");
+      return;
+    }
+    if (!reviewReason) {
+      setError("Explain what you verified and why this rejected story may continue.");
+      return;
+    }
+
+    setBusyId(item.id);
+    setError("");
+    setMessage("");
+    try {
+      await approveRejectedReview(item.id, {
+        reviewer: reviewer.trim(),
+        notes: reviewReason,
+      });
+      setMessage("Rejected item approved. It is now Ready for automation.");
+      setState("ready");
+    } catch (err) {
+      setError(err.message || "Could not approve the rejected item");
+    } finally {
+      setBusyId("");
+    }
+  }
+
   async function confirmReject() {
     if (!rejecting) return;
     setBusyId(rejecting.id);
@@ -277,6 +376,7 @@ export default function ReviewQueuePage() {
           );
           const effectiveReviewStage = restrictionStatus === "pending" ? "source" : item.reviewStage;
           const stage = STAGES[effectiveReviewStage] || STAGES.content;
+          const blockingContentErrors = hardContentErrors(item.publicationSafety);
           return (
             <article id={`review-${item.id}`} key={item.id} className="scroll-mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm target:border-violet-400 target:ring-4 target:ring-violet-100 sm:p-6">
               <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
@@ -411,6 +511,75 @@ export default function ReviewQueuePage() {
                 </div>
               )}
 
+              {state === "active" && effectiveReviewStage === "content" && (
+                <div id={`approval-${item.id}`} className="scroll-mt-6 mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
+                  <p className="text-sm font-black text-amber-950">Complete the content review</p>
+                  <p className="mt-2 text-xs leading-5 text-amber-800">
+                    Check the generated wording, attribution, quotations, and similarity warnings. Your decision is stored in the audit history and does not claim legal clearance.
+                  </p>
+
+                  {blockingContentErrors.length > 0 ? (
+                    <div className="mt-4 rounded-xl border border-red-200 bg-white p-4 text-sm text-red-800">
+                      <p className="font-black">Editing is required before approval</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 leading-5">
+                        {blockingContentErrors.map((reason) => <li key={reason}>{reason}</li>)}
+                      </ul>
+                      <Link href={`/clusters/${item.id}#generated-output`} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white">
+                        Edit or regenerate content
+                      </Link>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="mt-4 block text-sm font-black text-amber-950">
+                        What did you review? <span className="text-red-600">*</span>
+                        <textarea
+                          value={notes[item.id] || ""}
+                          onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))}
+                          placeholder="Example: Checked attribution, quotations, and similarity warnings; the wording is sufficiently original to continue."
+                          rows={3}
+                          className="mt-2 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-amber-500"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={!(notes[item.id] || "").trim() || busyId === item.id}
+                        onClick={() => approveContent(item)}
+                        className="mt-4 w-full rounded-xl bg-amber-700 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                      >
+                        {busyId === item.id ? "Saving approval..." : "Approve review and open for publishing"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {state === "active" && effectiveReviewStage === "platform" && (
+                <div id={`approval-${item.id}`} className="scroll-mt-6 mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:p-5">
+                  <p className="text-sm font-black text-blue-950">Confirm the delivery issue was checked</p>
+                  <p className="mt-2 text-xs leading-5 text-blue-800">
+                    Use this after checking the main-site API, credentials, or temporary service outage. It does not publish automatically; you will confirm Draft or Publish on the article screen.
+                  </p>
+                  <label className="mt-4 block text-sm font-black text-blue-950">
+                    What did you check? <span className="text-red-600">*</span>
+                    <textarea
+                      value={notes[item.id] || ""}
+                      onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))}
+                      placeholder="Example: Confirmed the main-site API is online and its automation key is configured."
+                      rows={3}
+                      className="mt-2 w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-blue-500"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={!(notes[item.id] || "").trim() || busyId === item.id}
+                    onClick={() => approvePlatform(item)}
+                    className="mt-4 w-full rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  >
+                    {busyId === item.id ? "Saving check..." : "Confirm check and retry from article"}
+                  </button>
+                </div>
+              )}
+
               {state === "ready" && (
                 <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
                   Human review is complete. Generate the content now for manual editing, or leave it here for the next automation run.
@@ -418,11 +587,40 @@ export default function ReviewQueuePage() {
               )}
 
               {state === "resolved" && (
-                <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-                  <strong className="capitalize">{String(item.reviewResolution || "resolved").replaceAll("_", " ")}</strong>
-                  {item.reviewer && <span> by {item.reviewer}</span>}
-                  {item.reviewNotes && <p className="mt-2 text-slate-600">{item.reviewNotes}</p>}
-                </div>
+                <>
+                  <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+                    <strong className="capitalize">{String(item.reviewResolution || "resolved").replaceAll("_", " ")}</strong>
+                    {item.reviewer && <span> by {item.reviewer}</span>}
+                    {item.reviewNotes && <p className="mt-2 text-slate-600">{item.reviewNotes}</p>}
+                  </div>
+
+                  {isRejectedItem(item) && (
+                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+                      <p className="text-sm font-black text-emerald-950">Reconsider and approve this rejected story</p>
+                      <p className="mt-2 text-xs leading-5 text-emerald-800">
+                        Confirm the facts and explain why the story may continue. Approval moves it directly to Ready for automation and keeps the original rejection in its audit history.
+                      </p>
+                      <label className="mt-4 block text-sm font-black text-emerald-950">
+                        What did you verify, and why may it continue? <span className="text-red-600">*</span>
+                        <textarea
+                          value={notes[item.id] || ""}
+                          onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))}
+                          placeholder="Example: Confirmed the date and key facts from the linked source. This remains timely and can continue with careful attribution."
+                          rows={3}
+                          className="mt-2 w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-emerald-500"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={!(notes[item.id] || "").trim() || busyId === item.id}
+                        onClick={() => approveRejected(item)}
+                        className="mt-4 w-full rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                      >
+                        {busyId === item.id ? "Saving approval..." : "Approve rejected item and move to Ready"}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
               {state === "active" && (

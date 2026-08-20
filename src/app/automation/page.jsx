@@ -89,23 +89,24 @@ export default function AutomationPage() {
   return (
     <>
       <AutomationResultModal result={resultModal} onClose={() => setResultModal(null)} />
-      <main className="min-h-screen px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+      <main className="min-h-screen px-3 py-3 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
+        <header className="rounded-[1.5rem] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center md:gap-5">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-amber-700">Pipeline Control</p>
-              <h1 className="mt-2 text-3xl font-black text-slate-950">News Automation</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700 sm:text-sm">Pipeline Control</p>
+              <h1 className="mt-1.5 text-2xl font-black text-slate-950 sm:mt-2 sm:text-3xl">News Automation</h1>
+              <p className="mt-1.5 max-w-2xl text-[0.8rem] leading-5 text-slate-600 sm:mt-2 sm:text-sm sm:leading-6">
                 Clean stories publish automatically. Single-source stories become attributed briefs; sensitive, uncertain, or unsafe items stop in the Review Queue.
               </p>
             </div>
-            <div className="grid gap-3 sm:flex sm:flex-wrap">
-              <Link href="/review" className="rounded-xl bg-amber-500 px-5 py-3 text-center text-sm font-bold text-slate-950 hover:bg-amber-400">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+              <Link href="/review" className="flex min-h-11 items-center justify-center rounded-xl bg-amber-500 px-3 py-2.5 text-center text-xs font-black text-slate-950 hover:bg-amber-400 sm:px-5 sm:py-3 sm:text-sm">
                 Review Queue
               </Link>
-              <Link href="/dashboard" className="rounded-xl border border-slate-300 px-5 py-3 text-center text-sm font-bold text-slate-900 hover:bg-slate-50">
-                Open Manual Workflow
+              <Link href="/dashboard" className="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-3 py-2.5 text-center text-xs font-black text-slate-900 hover:bg-slate-50 sm:px-5 sm:py-3 sm:text-sm">
+                <span className="sm:hidden">Manual workflow</span>
+                <span className="hidden sm:inline">Open Manual Workflow</span>
               </Link>
             </div>
           </div>
@@ -113,33 +114,33 @@ export default function AutomationPage() {
 
         {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-          <div className="grid gap-4 md:grid-cols-3">
+        <section className="rounded-[1.5rem] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+          <div className="grid gap-2.5 sm:gap-4 md:grid-cols-3">
             {[
               ["autoFetch", "Auto-fetch RSS", "Collect new titles, summaries, dates, and links from configured feeds."],
               ["autoGenerate", "Auto-generate safe content", "Verify each cluster first, then create an explainer or attributed brief."],
               ["autoPost", "Conditional auto-publish", "Publish only when verification and originality checks pass; exceptions go to review."],
             ].map(([key, label, help]) => (
-              <label key={key} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <label key={key} className="flex min-h-[4.75rem] items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:min-h-0 sm:p-4">
                 <input type="checkbox" checked={options[key]} onChange={(event) => setOptions({ ...options, [key]: event.target.checked })} className="mt-0.5 h-5 w-5 shrink-0" />
-                <span><span className="block font-bold text-slate-800">{label}</span><span className="mt-1 block text-xs leading-5 text-slate-500">{help}</span></span>
+                <span><span className="block text-sm font-black text-slate-800 sm:text-base sm:font-bold">{label}</span><span className="mt-0.5 block text-[0.68rem] leading-4 text-slate-500 sm:mt-1 sm:text-xs sm:leading-5">{help}</span></span>
               </label>
             ))}
           </div>
 
-          <label className="mt-5 block text-sm font-bold text-slate-700 sm:max-w-xs">
+          <label className="mt-4 block text-xs font-black text-slate-700 sm:mt-5 sm:max-w-xs sm:text-sm sm:font-bold">
             Repeat interval (minutes)
-            <input type="number" min="1" value={intervalMinutes} onChange={(event) => setIntervalMinutes(Math.max(1, Number(event.target.value)))} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900" />
+            <input type="number" min="1" value={intervalMinutes} onChange={(event) => setIntervalMinutes(Math.max(1, Number(event.target.value)))} className="mt-1.5 w-full rounded-xl border border-slate-300 px-4 py-2.5 outline-none focus:border-slate-900 sm:mt-2 sm:py-3" />
           </label>
 
-          <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
-            <button disabled={busy || status?.running} onClick={() => execute(() => startAutomation(options, intervalMinutes * 60))} className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-6 sm:flex sm:flex-wrap sm:gap-3">
+            <button disabled={busy || status?.running} onClick={() => execute(() => startAutomation(options, intervalMinutes * 60))} className="order-2 min-h-12 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white disabled:opacity-50 sm:order-1 sm:px-5 sm:text-sm sm:font-bold">
               Start Automation
             </button>
-            <button disabled={busy || !status?.running} onClick={() => execute(stopAutomation)} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
+            <button disabled={busy || !status?.running} onClick={() => execute(stopAutomation)} className="order-3 min-h-12 rounded-xl bg-red-600 px-4 py-3 text-xs font-black text-white disabled:opacity-50 sm:order-2 sm:px-5 sm:text-sm sm:font-bold">
               Stop Automation
             </button>
-            <button disabled={busy || status?.pipelineRunning} onClick={() => execute(() => runAutomation(options), true)} className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">
+            <button disabled={busy || status?.pipelineRunning} onClick={() => execute(() => runAutomation(options), true)} className="order-1 col-span-2 min-h-12 rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white disabled:opacity-50 sm:order-3 sm:font-bold">
               {status?.pipelineRunning ? "Pipeline Running..." : "Run Once"}
             </button>
           </div>

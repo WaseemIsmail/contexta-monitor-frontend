@@ -89,20 +89,36 @@ p {
   transform: translateY(0);
 }
 
+/*
+ * iOS standalone apps draw behind the status bar when viewport-fit=cover is
+ * enabled. Keep the dark chrome behind that area, but move interactive header
+ * content below the Dynamic Island/notch.
+ */
+.monitor-nav {
+  padding-top: env(safe-area-inset-top);
+}
+
+.monitor-nav > div {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
 @media (max-width: 1023px) {
   body {
-    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
     overscroll-behavior-y: contain;
     touch-action: manipulation;
   }
 
   #monitor-content {
-    min-height: calc(100dvh - 4rem - 5rem);
+    min-height: calc(100dvh - 4rem - 5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 }
 
 .monitor-mobile-nav {
   isolation: isolate;
+  padding-left: max(0.25rem, env(safe-area-inset-left));
+  padding-right: max(0.25rem, env(safe-area-inset-right));
 }
 
 .monitor-mobile-sheet {

@@ -212,6 +212,27 @@ export function approveReviewVerification(clusterId, review) {
   });
 }
 
+export function approveReviewContent(clusterId, review) {
+  return request(`/reviews/${clusterId}/approve-content`, {
+    method: "POST",
+    body: JSON.stringify(review),
+  });
+}
+
+export function approveReviewPlatform(clusterId, review) {
+  return request(`/reviews/${clusterId}/approve-platform`, {
+    method: "POST",
+    body: JSON.stringify(review),
+  });
+}
+
+export function approveRejectedReview(clusterId, review) {
+  return request(`/reviews/${clusterId}/approve-rejected`, {
+    method: "POST",
+    body: JSON.stringify(review),
+  });
+}
+
 export function rejectReviewItem(clusterId, review) {
   return request(`/reviews/${clusterId}/reject`, {
     method: "POST",

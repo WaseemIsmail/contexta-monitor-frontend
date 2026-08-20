@@ -25,11 +25,11 @@ export default function MonitorNavigation() {
   return (
     <>
       <header className="monitor-nav sticky top-0 z-40 border-b border-slate-800 bg-slate-950/95 text-white shadow-lg shadow-slate-950/10 backdrop-blur-xl">
-      <div className="mx-auto flex min-h-16 max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-14 max-w-[90rem] items-center justify-between gap-3 px-4 sm:min-h-16 sm:px-6 lg:px-8">
         <Link href="/dashboard" className="group flex min-w-0 items-center gap-3 rounded-xl py-2" aria-label="Contextra Monitor dashboard">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-sm font-black text-slate-950 shadow-sm transition group-hover:rotate-[-3deg] group-hover:bg-amber-300" aria-hidden="true">CM</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-xs font-black text-slate-950 shadow-sm transition group-hover:rotate-[-3deg] group-hover:bg-amber-300 sm:h-10 sm:w-10 sm:text-sm" aria-hidden="true">CM</span>
           <span className="min-w-0">
-            <strong className="block truncate text-sm font-black tracking-tight">Contextra Monitor</strong>
+            <strong className="block truncate text-[0.82rem] font-black tracking-tight sm:text-sm">Contextra Monitor</strong>
             <span className="mt-0.5 hidden text-[0.62rem] font-bold uppercase tracking-[0.16em] text-slate-400 sm:block">Editorial operations</span>
           </span>
         </Link>
@@ -57,7 +57,7 @@ export default function MonitorNavigation() {
             View main site <span aria-hidden="true">↗</span>
           </a>
           <details className="group relative">
-            <summary className="flex min-h-11 list-none items-center gap-2 rounded-xl border border-slate-700 px-2 text-left transition marker:hidden hover:border-slate-500 hover:bg-slate-900 sm:pr-3">
+            <summary className="flex min-h-10 list-none items-center gap-2 rounded-xl border border-slate-700 px-1.5 text-left transition marker:hidden hover:border-slate-500 hover:bg-slate-900 sm:min-h-11 sm:px-2 sm:pr-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-xs font-black text-slate-950" aria-hidden="true">{initial}</span>
               <span className="hidden max-w-36 sm:block">
                 <strong className="block truncate text-xs font-black text-white">{displayName}</strong>
